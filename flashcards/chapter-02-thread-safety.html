@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 2: Thread Safety — Flashcards</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-size: 1.6rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+
+    details summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #5c6bc0;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      top: -1px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    details summary:hover {
+      background: #f8f9ff;
+    }
+
+    .answer {
+      padding: 0 1.4rem 1.3rem 2.65rem;
+      line-height: 1.7;
+      color: #333;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    .answer strong {
+      color: #5c6bc0;
+    }
+
+    .answer code {
+      background: #f0f0f5;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .card-number {
+      color: #999;
+      font-size: 0.8rem;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    blockquote {
+      border-left: 3px solid #5c6bc0;
+      margin: 0.75rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8f9ff;
+      font-style: italic;
+      font-size: 0.93em;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Chapter 2: Thread Safety</h1>
+  <p class="subtitle">Click a question to reveal the answer &mdash; 15 cards</p>
+
+  <div class="card">
+    <details>
+      <summary>What is thread safety? Give the book's definition.</summary>
+      <div class="answer">
+        <blockquote>"A class is thread-safe if it behaves correctly when accessed from multiple threads, regardless of the scheduling or interleaving of the execution of those threads by the runtime environment, and with no additional synchronization or other coordination on the part of the calling code."</blockquote>
+        The critical phrase is <strong>"no additional coordination on the part of the calling code"</strong> &mdash; a truly thread-safe class encapsulates all the synchronization it needs internally.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is "shared, mutable state" and why does it matter for thread safety?</summary>
+      <div class="answer">
+        An object's <strong>state</strong> is its data (instance or static fields). <strong>Shared</strong> means accessible by multiple threads; <strong>mutable</strong> means it can change after construction.
+        <br><br>
+        Thread safety is fundamentally about managing access to shared, mutable state. If state isn't shared or isn't mutable, there's no thread safety problem to solve.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the three ways to fix a shared mutable state problem?</summary>
+      <div class="answer">
+        <strong>1. Don't share</strong> the state variable across threads<br>
+        <strong>2. Make it immutable</strong><br>
+        <strong>3. Use synchronization</strong> whenever accessing it
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why are stateless objects always thread-safe?</summary>
+      <div class="answer">
+        A stateless object has no fields &mdash; all data lives in <strong>local variables</strong> on the thread's stack, which are inherently thread-private. Since threads share nothing, they can't interfere with each other. The book's <code>StatelessFactorizer</code> servlet demonstrates this.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is a race condition?</summary>
+      <div class="answer">
+        A race condition occurs when the <strong>correctness of a computation depends on the relative timing or interleaving</strong> of multiple threads. The program may work most of the time but fail unpredictably when threads interleave in an unlucky order.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is the most common type of race condition? Give an example.</summary>
+      <div class="answer">
+        <strong>Check-then-act</strong>: you observe something (check) then take action based on that observation (act), but between the two steps the observation may have become invalid.
+        <br><br>
+        Classic example: <strong>lazy initialization</strong> &mdash; two threads both check <code>if (instance == null)</code>, both see null, and both create separate instances, violating the singleton invariant.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is a compound action? Give two examples.</summary>
+      <div class="answer">
+        A compound action is a sequence of operations that must execute <strong>atomically</strong> to be correct &mdash; it must appear indivisible from any other thread's perspective.
+        <br><br>
+        Two common patterns:<br>
+        <strong>Read-modify-write</strong> (e.g., <code>count++</code>)<br>
+        <strong>Check-then-act</strong> (e.g., lazy initialization)
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How does <code>AtomicLong</code> provide thread safety without locks?</summary>
+      <div class="answer">
+        <code>AtomicLong</code> uses hardware-level <strong>compare-and-swap (CAS)</strong> instructions to make compound actions like increment atomic. It's part of <code>java.util.concurrent.atomic</code> and is simpler to reason about than explicit locking for single-variable state.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why can't you use two separate <code>AtomicReference</code> fields to protect two related state variables?</summary>
+      <div class="answer">
+        Each <code>AtomicReference</code> is individually atomic, but the two updates are <strong>not atomic with respect to each other</strong>. A thread could see the new value of one field paired with the stale value of the other, violating invariants.
+        <br><br>
+        Related state variables must be updated in a <strong>single atomic operation</strong>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is an intrinsic lock (monitor lock)?</summary>
+      <div class="answer">
+        Every Java object can act as a lock for <code>synchronized</code> blocks. These built-in locks are called <strong>intrinsic locks</strong> or <strong>monitor locks</strong>. A <code>synchronized</code> method uses <code>this</code> as the lock (or the <code>Class</code> object for static methods). They are <strong>mutexes</strong> &mdash; at most one thread can hold the lock at a time.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does it mean that intrinsic locks are reentrant? Why does this matter?</summary>
+      <div class="answer">
+        A <strong>reentrant</strong> lock allows a thread that already holds the lock to acquire it again without deadlocking. The lock tracks an acquisition count and the owning thread; the lock is released when the count drops to zero.
+        <br><br>
+        This matters for <strong>inheritance</strong>: if a subclass overrides a <code>synchronized</code> method and calls <code>super.method()</code>, the parent needs the same lock. Without reentrancy, this would deadlock.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is the rule for guarding state with locks?</summary>
+      <div class="answer">
+        For each mutable state variable accessed by more than one thread, <strong>all</strong> accesses must use the <strong>same lock</strong>.
+        <br><br>
+        For invariants involving multiple variables, <strong>all</strong> those variables must be guarded by the <strong>same</strong> lock. Make it clear to maintainers which lock guards which variable.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is synchronizing an entire servlet method a bad idea, even though it's thread-safe?</summary>
+      <div class="answer">
+        It creates a <strong>bottleneck</strong> &mdash; only one thread can execute the method at a time, making the servlet effectively single-threaded. This defeats the purpose of a multi-threaded container.
+        <br><br>
+        The fix is to <strong>narrow synchronization scope</strong> to just the code that accesses shared state, so expensive computations run outside the lock.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is the book's advice about holding locks during long operations?</summary>
+      <div class="answer">
+        <blockquote>"Avoid holding locks during lengthy computations or operations at risk of not completing quickly such as network or console I/O."</blockquote>
+        Other threads are <strong>blocked</strong> for the entire duration the lock is held, destroying concurrency and throughput.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does <code>CachedFactorizer</code> (Listing 2.8) demonstrate about balancing safety and performance?</summary>
+      <div class="answer">
+        It uses short <code>synchronized</code> blocks for checking and updating cached state, but performs the expensive factorization <strong>outside</strong> any lock. This <strong>narrow synchronization scope</strong> preserves thread safety while allowing concurrent request processing &mdash; the right balance between simplicity/safety and performance.
+      </div>
+    </details>
+  </div>
+
+</body>
+</html>
