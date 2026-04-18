@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 4: Composing Objects — Flashcards</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-size: 1.6rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+
+    details summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #5c6bc0;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      top: -1px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    details summary:hover {
+      background: #f8f9ff;
+    }
+
+    .answer {
+      padding: 0 1.4rem 1.3rem 2.65rem;
+      line-height: 1.7;
+      color: #333;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    .answer strong {
+      color: #5c6bc0;
+    }
+
+    .answer code {
+      background: #f0f0f5;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .card-number {
+      color: #999;
+      font-size: 0.8rem;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    blockquote {
+      border-left: 3px solid #5c6bc0;
+      margin: 0.75rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8f9ff;
+      font-style: italic;
+      font-size: 0.93em;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Chapter 4: Composing Objects</h1>
+  <p class="subtitle">Click a question to reveal the answer &mdash; 20 cards</p>
+
+  <div class="card">
+    <details>
+      <summary>What are the three steps in the book's design process for a thread-safe class?</summary>
+      <div class="answer">
+        <strong>1.</strong> Identify the <strong>state variables</strong> that form the object's state.<br>
+        <strong>2.</strong> Identify the <strong>invariants</strong> that constrain those variables.<br>
+        <strong>3.</strong> Establish a <strong>synchronization policy</strong> &mdash; which locks guard which variables, what combination of immutability/confinement/locking maintains thread safety.
+        <br><br>
+        And <strong>document</strong> the policy.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is a "synchronization policy"?</summary>
+      <div class="answer">
+        The design rules for how an object coordinates access to its state:
+        <br><br>
+        &bull; Which fields are guarded by which locks<br>
+        &bull; Which fields are immutable or thread-confined<br>
+        &bull; Which operations must be atomic
+        <br><br>
+        It belongs in comments and <code>@GuardedBy</code> annotations &mdash; not just in your head.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How do invariants and post-conditions create synchronization requirements?</summary>
+      <div class="answer">
+        <strong>Invariants</strong> (valid states) force you to <strong>encapsulate</strong> the state so clients can't put it in an invalid state.
+        <br><br>
+        <strong>Post-conditions</strong> (valid state transitions) force compound actions to be <strong>atomic</strong> &mdash; you can't release the lock between steps, or another thread may observe an illegal intermediate state.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is the Java monitor pattern?</summary>
+      <div class="answer">
+        An object encapsulates <strong>all its mutable state</strong> and guards it with the object's <strong>own intrinsic lock</strong>. All access goes through <code>synchronized</code> methods.
+        <br><br>
+        Used by <code>Vector</code>, <code>Hashtable</code>, <code>Counter</code>. The primary advantage is <strong>simplicity</strong> &mdash; synchronization logic lives in one place.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is using a private <code>Object</code> lock often better than using <code>this</code> as the intrinsic lock?</summary>
+      <div class="answer">
+        A private lock is <strong>encapsulated</strong>: client code cannot acquire it, so clients can't accidentally participate in (or break) your synchronization policy or cause liveness problems.
+        <br><br>
+        Verifying the locking policy requires examining <strong>only one class</strong> instead of the whole program.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is instance confinement?</summary>
+      <div class="answer">
+        Encapsulating a <strong>non-thread-safe object entirely within a thread-safe class</strong>, where the inner object never escapes and all access goes through the wrapper's synchronized methods.
+        <br><br>
+        <code>PersonSet</code>'s private <code>HashSet</code> is instance-confined. This is also how <code>Collections.synchronizedList</code> works &mdash; the <strong>Decorator pattern</strong>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is "state ownership" and why does it matter for thread safety?</summary>
+      <div class="answer">
+        Ownership isn't a language construct &mdash; it's a design concept. The <strong>owner</strong> of a state variable decides its locking protocol.
+        <br><br>
+        Encapsulation typically implies ownership. <strong>Split ownership</strong> (e.g. <code>ServletContext</code> attributes) is common: the container owns the map, the application owns the values, and each side is responsible for its share of the safety work.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is delegation of thread safety?</summary>
+      <div class="answer">
+        The composite class relies on <strong>thread-safe underlying components</strong> to provide its thread safety, and <strong>adds no synchronization of its own</strong>.
+        <br><br>
+        Examples: <code>CountingFactorizer</code> delegates to <code>AtomicLong</code>; <code>DelegatingVehicleTracker</code> delegates to <code>ConcurrentHashMap</code> + immutable <code>Point</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's the rule for when a composite can safely delegate to multiple thread-safe components?</summary>
+      <div class="answer">
+        The underlying components must be <strong>independent</strong>:
+        <br><br>
+        &bull; The composite imposes <strong>no invariants</strong> involving multiple state variables, and<br>
+        &bull; No operation has <strong>invalid state transitions</strong>.
+        <br><br>
+        <code>VisualComponent</code> (two unrelated listener lists) qualifies. <code>NumberRange</code> (<code>lower &le; upper</code>) does not.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why isn't <code>NumberRange</code> (Listing 4.10) thread-safe even though it uses <code>AtomicInteger</code>s?</summary>
+      <div class="answer">
+        <code>setLower</code> and <code>setUpper</code> are <strong>check-then-act sequences</strong> without sufficient locking.
+        <br><br>
+        Given range <code>(0, 10)</code>, concurrent <code>setLower(5)</code> and <code>setUpper(4)</code> can both pass their checks and both write, producing <code>(5, 4)</code> &mdash; an invalid state.
+        <br><br>
+        When variables participate in an invariant, per-variable atomics aren't enough &mdash; the compound action needs a single lock.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>When is it safe to publish an underlying state variable directly to clients?</summary>
+      <div class="answer">
+        When <strong>all three</strong> hold:
+        <br><br>
+        <strong>1.</strong> The variable is thread-safe.<br>
+        <strong>2.</strong> It <strong>doesn't participate in invariants</strong> that constrain its value.<br>
+        <strong>3.</strong> No operation on it has prohibited state transitions.
+        <br><br>
+        <code>Counter.value</code> fails (2). <code>VisualComponent.mouseListeners</code> passes all three.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What problem does <code>SafePoint.get()</code> returning <code>int[]{x, y}</code> solve?</summary>
+      <div class="answer">
+        It provides an <strong>atomic combined read</strong> of both coordinates.
+        <br><br>
+        Separate <code>getX()</code>/<code>getY()</code> would let another thread mutate the point between the two calls, so a caller could observe an <code>(x, y)</code> pair the vehicle was never at. Related values must be fetched atomically.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is the private constructor capture idiom, and why does <code>SafePoint</code> use it?</summary>
+      <div class="answer">
+        A naive copy constructor <code>this(p.x, p.y)</code> would race between the two reads.
+        <br><br>
+        <code>SafePoint</code> instead has a <strong>private constructor taking <code>int[]</code></strong>; the public copy constructor calls <code>this(p.get())</code>, doing a single atomic snapshot of both coordinates before passing them to the private one.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's the difference between returning an unmodifiable <em>live view</em> vs. a <em>snapshot</em> of a map?</summary>
+      <div class="answer">
+        <strong>Live view</strong> &mdash; <code>Collections.unmodifiableMap(backingMap)</code>: read-only but <em>reflects ongoing updates</em>. Fresh data, but can look inconsistent if callers iterate while it mutates.
+        <br><br>
+        <strong>Snapshot</strong> &mdash; <code>Collections.unmodifiableMap(new HashMap&lt;&gt;(backingMap))</code>: a point-in-time copy. Consistent but goes stale.
+        <br><br>
+        Pick deliberately.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the four strategies for adding a new atomic operation to an existing thread-safe class, safest to most fragile?</summary>
+      <div class="answer">
+        <strong>1.</strong> <strong>Modify the original class</strong> &mdash; safest; policy stays in one place.<br>
+        <strong>2.</strong> <strong>Extend</strong> the class (<code>BetterVector</code>) &mdash; fragile; locking code now spans files.<br>
+        <strong>3.</strong> <strong>Client-side locking</strong> &mdash; even more fragile; locking code in an unrelated class.<br>
+        <strong>4.</strong> <strong>Composition</strong> (<code>ImprovedList</code>) &mdash; wrap with your own lock; independent of the underlying strategy.
+        <br><br>
+        <strong>Composition is the preferred approach.</strong>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why does the naive <code>ListHelper</code> in Listing 4.14 fail to make <code>putIfAbsent</code> atomic?</summary>
+      <div class="answer">
+        It synchronizes on the <strong>wrong lock</strong> &mdash; the helper itself, not the underlying list.
+        <br><br>
+        The list's own <code>synchronized</code> methods use the list's intrinsic lock; the helper's <code>synchronized</code> blocks don't interact with it, so other threads can modify the list between the <code>contains</code> check and the <code>add</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How does client-side locking work, and what's its main caveat?</summary>
+      <div class="answer">
+        Acquire the <strong>same lock the target object uses</strong> (e.g. <code>synchronized (list)</code> for a <code>Collections.synchronizedList</code>) and perform your compound action inside.
+        <br><br>
+        Caveat: it only works if the target class <strong>documents</strong> that it supports client-side locking on its intrinsic lock. Without that commitment, you're guessing at its internal policy and the next release could silently break you.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is composition the preferred way to add functionality to an existing thread-safe class?</summary>
+      <div class="answer">
+        The composition wrapper uses <strong>its own lock</strong> to synchronize every delegated method, making it <strong>independent of the underlying class's locking strategy</strong>.
+        <br><br>
+        It's effectively the Java monitor pattern over an existing object &mdash; works whether the underlying object is thread-safe or not, and doesn't break if the underlying class changes its policy.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What should you document about a thread-safe class, and for whom?</summary>
+      <div class="answer">
+        <blockquote>"Document a class's thread safety guarantees for its clients; document its synchronization policy for its maintainers."</blockquote>
+        <strong>Clients</strong> need: is it thread-safe? Does it make callbacks with a lock held? Which lock (if any) supports client-side locking?
+        <br><br>
+        <strong>Maintainers</strong> need: the synchronization policy &mdash; which fields are <code>@GuardedBy</code> which lock, which invariants hold, which operations are atomic.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Which of <code>ServletContext</code>, <code>HttpSession</code>, <code>DataSource</code>, <code>SimpleDateFormat</code>, and JDBC <code>Connection</code> are thread-safe?</summary>
+      <div class="answer">
+        <strong>Thread-safe</strong> (by reasonable inference &mdash; containers access them concurrently, no client-side locking in spec examples): <code>ServletContext</code>, <code>HttpSession</code>, <code>DataSource</code>.
+        <br><br>
+        <strong>Your responsibility</strong>: attributes stored in <code>ServletContext</code>/<code>HttpSession</code> &mdash; make them thread-safe or effectively immutable.
+        <br><br>
+        <strong>NOT thread-safe</strong>: <code>SimpleDateFormat</code> (classic gotcha).
+        <br><br>
+        <strong>Not intended to be shared</strong>: JDBC <code>Connection</code> &mdash; typically thread-confined per request.
+      </div>
+    </details>
+  </div>
+
+</body>
+</html>
