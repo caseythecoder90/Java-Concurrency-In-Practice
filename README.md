@@ -19,8 +19,8 @@ This repository contains detailed notes, flashcards, and runnable code examples 
 | # | Chapter | Status |
 |---|---------|--------|
 | 1 | Introduction | Done |
-| 2 | Thread Safety | In Progress |
-| 3 | Sharing Objects | |
+| 2 | Thread Safety | Done |
+| 3 | Sharing Objects | In Progress |
 | 4 | Composing Objects | |
 | 5 | Building Blocks | |
 | 6 | Task Execution | |

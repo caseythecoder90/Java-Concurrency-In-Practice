@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 3: Sharing Objects — Flashcards</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-size: 1.6rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+
+    details summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #5c6bc0;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      top: -1px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    details summary:hover {
+      background: #f8f9ff;
+    }
+
+    .answer {
+      padding: 0 1.4rem 1.3rem 2.65rem;
+      line-height: 1.7;
+      color: #333;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    .answer strong {
+      color: #5c6bc0;
+    }
+
+    .answer code {
+      background: #f0f0f5;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .card-number {
+      color: #999;
+      font-size: 0.8rem;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    blockquote {
+      border-left: 3px solid #5c6bc0;
+      margin: 0.75rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8f9ff;
+      font-style: italic;
+      font-size: 0.93em;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0;
+      font-size: 0.93em;
+    }
+
+    table th, table td {
+      text-align: left;
+      padding: 0.5rem 0.7rem;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+
+    table th {
+      background: #f8f9ff;
+      color: #5c6bc0;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Chapter 3: Sharing Objects</h1>
+  <p class="subtitle">Click a question to reveal the answer &mdash; 24 cards</p>
+
+  <div class="card">
+    <details>
+      <summary>Besides atomicity, what second major problem does <code>synchronized</code> solve?</summary>
+      <div class="answer">
+        <strong>Memory visibility.</strong> When thread A releases a lock and thread B later acquires the <strong>same</strong> lock, everything A did before the release is guaranteed visible to B after the acquire.
+        <br><br>
+        Without synchronization, there is no guarantee a reader will ever see another thread's writes &mdash; on any timely basis, or at all.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the three possible outcomes of running <code>NoVisibility</code> (Listing 3.1)?</summary>
+      <div class="answer">
+        The main thread writes <code>number = 42; ready = true;</code>; the reader spins on <code>while (!ready)</code> and prints <code>number</code>.
+        <br><br>
+        <strong>1.</strong> Prints <code>42</code> (the happy path).<br>
+        <strong>2.</strong> Prints <code>0</code> &mdash; the write to <code>ready</code> becomes visible before the write to <code>number</code> due to <strong>reordering</strong>.<br>
+        <strong>3.</strong> <strong>Loops forever</strong> &mdash; the write to <code>ready</code> never becomes visible to the reader.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is stale data, and why is it especially dangerous?</summary>
+      <div class="answer">
+        A <strong>stale value</strong> is an old value still visible to a reader after another thread has updated the variable.
+        <br><br>
+        It's dangerous because staleness is <strong>not all-or-nothing</strong> &mdash; a thread can see a fresh value for one field and a stale value for another field written before it, leaving objects in observably inconsistent states.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's special about non-volatile <code>long</code> and <code>double</code> variables across threads?</summary>
+      <div class="answer">
+        The JVM is allowed to split a 64-bit read or write into two 32-bit operations. A reader can see a <strong>"torn" value</strong> &mdash; the high 32 bits from one write and the low 32 bits from another, a value no thread ever actually wrote.
+        <br><br>
+        Shared mutable <code>long</code> / <code>double</code> must be declared <code>volatile</code> or guarded by a lock.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What visibility guarantee does <code>volatile</code> give that regular variables don't?</summary>
+      <div class="answer">
+        A read of a volatile always returns the most recent write by any thread &mdash; the value is never cached in a register or per-CPU cache where it's hidden from other processors.
+        <br><br>
+        Writing a volatile also acts like <strong>exiting a synchronized block</strong>: everything visible to the writer before the volatile write becomes visible to a thread that reads the volatile. Reading one is like entering a synchronized block.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What can <code>volatile</code> <em>not</em> do that <code>synchronized</code> or atomic classes can?</summary>
+      <div class="answer">
+        <strong>Atomicity of compound actions.</strong> <code>count++</code> on a volatile is still three operations (read, add, write); interleaved threads can lose updates.
+        <br><br>
+        <blockquote>"Locking can guarantee both visibility and atomicity; volatile variables can only guarantee visibility."</blockquote>
+        Use <code>AtomicLong</code> or a lock for read-modify-write.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>When is it appropriate to use <code>volatile</code>?</summary>
+      <div class="answer">
+        When <strong>all three</strong> hold:
+        <br><br>
+        <strong>1.</strong> Writes don't depend on the current value (or only one thread ever writes).<br>
+        <strong>2.</strong> The variable doesn't participate in invariants with other state variables.<br>
+        <strong>3.</strong> Locking isn't required for any other reason.
+        <br><br>
+        Classic use: a completion/shutdown/status flag like <code>volatile boolean asleep</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does it mean for an object to "escape"?</summary>
+      <div class="answer">
+        It's been made reachable outside its intended scope &mdash; stored in a public static field, returned from a non-private method, passed to an alien method, exposed via an inner class, etc.
+        <br><br>
+        Once escaped, you must assume other code may use or misuse it concurrently. This is why encapsulation matters for concurrency.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is an "alien method" and why does it matter for publication?</summary>
+      <div class="answer">
+        An <strong>alien method</strong> is any method whose behavior isn't fully specified by your class &mdash; methods on other classes, or overridable (neither <code>private</code> nor <code>final</code>) methods in your own class.
+        <br><br>
+        Passing an object to an alien method <strong>is publication</strong>, because you can't know whether it will retain or leak the reference to another thread.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is <code>ThisEscape</code> (Listing 3.7) broken, and how does <code>SafeListener</code> fix it?</summary>
+      <div class="answer">
+        Registering an anonymous inner-class listener from the constructor leaks <code>this</code> &mdash; the inner class holds an implicit outer reference, so other threads can reach the <code>ThisEscape</code> object <strong>before construction finishes</strong> and observe a partially constructed instance.
+        <br><br>
+        <code>SafeListener</code> uses a <strong>private constructor + public static factory method</strong> that only registers the listener <em>after</em> the object is fully constructed.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is thread confinement, and why does it make non-thread-safe objects safe?</summary>
+      <div class="answer">
+        Thread confinement means an object is only accessed by a <strong>single thread</strong>. With no sharing, there are no race conditions or visibility issues &mdash; even a non-thread-safe object is safe to use this way.
+        <br><br>
+        Real-world examples: Swing components confined to the event dispatch thread; pooled JDBC <code>Connection</code>s confined to a thread for the duration of a request.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's the difference between ad-hoc, stack, and <code>ThreadLocal</code> confinement?</summary>
+      <div class="answer">
+        <strong>Ad-hoc:</strong> confinement enforced purely by convention/documentation &mdash; fragile; nothing in the language helps.
+        <br><br>
+        <strong>Stack:</strong> object only reachable via local variables; the stack itself enforces it. Primitives are always stack-confined (you can't take a reference to one).
+        <br><br>
+        <strong><code>ThreadLocal</code>:</strong> <code>ThreadLocal&lt;T&gt;</code> gives each thread its own copy via <code>get</code>/<code>set</code>; values are stored on the <code>Thread</code> object itself.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Give a realistic use case for <code>ThreadLocal</code>.</summary>
+      <div class="answer">
+        Associating a <strong>per-thread database connection</strong> so code doesn't have to pass <code>Connection</code> through every method call (Listing 3.10), or storing <strong>transaction context</strong> in a J2EE container.
+        <br><br>
+        Each thread's first <code>get</code> calls <code>initialValue</code>; subsequent calls return that thread's stored value.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's the downside of <code>ThreadLocal</code>?</summary>
+      <div class="answer">
+        It behaves like a <strong>global variable or hidden method parameter</strong>, creating invisible coupling between classes. Code using a <code>ThreadLocal</code> is implicitly tied to whatever framework populates it, and the coupling isn't visible in method signatures.
+        <br><br>
+        Use with care &mdash; prefer passing values explicitly when you can.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the three requirements for an object to be immutable?</summary>
+      <div class="answer">
+        <strong>1.</strong> Its <strong>state cannot be modified</strong> after construction.<br>
+        <strong>2.</strong> <strong>All its fields are <code>final</code>.</strong><br>
+        <strong>3.</strong> It is <strong>properly constructed</strong> &mdash; the <code>this</code> reference does not escape during construction.
+        <br><br>
+        Note: <code>final</code> fields alone aren't sufficient, because a <code>final</code> field can reference a mutable object.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Can an immutable object use mutable objects internally?</summary>
+      <div class="answer">
+        Yes. <code>ThreeStooges</code> (Listing 3.11) uses a mutable <code>HashSet</code> internally.
+        <br><br>
+        As long as the mutable state is (a) established entirely in the constructor, (b) <strong>never exposed</strong>, and (c) never modified afterward, the containing object is immutable.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How do <code>OneValueCache</code> and <code>VolatileCachedFactorizer</code> (Listings 3.12-3.13) solve the two-field atomicity problem <em>without</em> locking?</summary>
+      <div class="answer">
+        <code>OneValueCache</code> is an <strong>immutable holder</strong> containing both the number and its factors &mdash; any thread that sees the reference sees a consistent snapshot.
+        <br><br>
+        <code>VolatileCachedFactorizer</code> keeps a single <code>volatile OneValueCache cache</code>. Updating is a one-shot reassignment of the volatile field, which becomes instantly visible to all threads. <strong>No lock needed.</strong>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is this unsafe publication? <code>public Holder holder; holder = new Holder(42);</code></summary>
+      <div class="answer">
+        Without synchronization, other threads may:
+        <br><br>
+        <strong>(a)</strong> see a stale value for <code>holder</code> (null or earlier), or<br>
+        <strong>(b)</strong> see the reference but see <code>Holder</code>'s fields in a <strong>partially constructed state</strong> &mdash; e.g. the default <code>0</code> instead of the constructor-set value.
+        <br><br>
+        <code>Holder.assertSanity</code>'s <code>if (n != n)</code> check really can fire under improper publication.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the four safe publication idioms for a properly constructed object?</summary>
+      <div class="answer">
+        <strong>1.</strong> Initialize it from a <strong>static initializer</strong>.<br>
+        <strong>2.</strong> Store the reference in a <strong><code>volatile</code> field or <code>AtomicReference</code></strong>.<br>
+        <strong>3.</strong> Store the reference in a <strong><code>final</code> field</strong> of a properly constructed object.<br>
+        <strong>4.</strong> Store the reference in a field <strong>properly guarded by a lock</strong>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Do thread-safe collections provide safe publication?</summary>
+      <div class="answer">
+        <strong>Yes.</strong> Placing an object into <code>Hashtable</code>, <code>ConcurrentMap</code>, <code>synchronizedMap</code>, <code>Vector</code>, <code>CopyOnWriteArrayList</code>/<code>Set</code>, <code>synchronizedList</code>/<code>Set</code>, <code>BlockingQueue</code>, or <code>ConcurrentLinkedQueue</code> safely publishes it to any thread that retrieves it later.
+        <br><br>
+        No extra synchronization is needed at the handoff &mdash; the collection's internal synchronization covers you.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is an <em>effectively</em> immutable object?</summary>
+      <div class="answer">
+        An object that isn't technically immutable (it could be mutated), but by convention is <strong>never modified after publication</strong>.
+        <br><br>
+        Once safely published, an effectively immutable object can be shared across threads without further synchronization. Classic example: <code>Date</code> values placed in a <code>synchronizedMap</code> that no one mutates afterward.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What special guarantee does the JMM give to truly immutable objects?</summary>
+      <div class="answer">
+        <strong>Initialization safety</strong> &mdash; they can be safely accessed by any thread <strong>even if synchronization was not used to publish them</strong>.
+        <br><br>
+        This only applies when <em>all</em> immutability requirements are met (unmodifiable state, all fields <code>final</code>, proper construction). A non-immutable object published unsafely is <em>not</em> covered.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What are the four sharing policies the book recommends documenting for any shared object?</summary>
+      <div class="answer">
+        <table>
+          <tr><th>Policy</th><th>Access rules</th></tr>
+          <tr><td><strong>Thread-confined</strong></td><td>Owned by one thread; only that thread reads or writes.</td></tr>
+          <tr><td><strong>Shared read-only</strong></td><td>Multiple readers, no writers. Includes immutable and effectively immutable objects.</td></tr>
+          <tr><td><strong>Shared thread-safe</strong></td><td>Object synchronizes internally; freely usable through its public API.</td></tr>
+          <tr><td><strong>Guarded</strong></td><td>Accessible only while holding a specified lock.</td></tr>
+        </table>
+        Every shared reference should come with a known policy &mdash; document it.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How do publication requirements differ for immutable, effectively immutable, and mutable objects?</summary>
+      <div class="answer">
+        <strong>Immutable:</strong> can be published through any mechanism, even a data race.
+        <br><br>
+        <strong>Effectively immutable:</strong> must be <em>safely</em> published; then no further synchronization is needed.
+        <br><br>
+        <strong>Mutable:</strong> must be safely published <em>and</em> be either thread-safe or guarded by a lock on every access.
+      </div>
+    </details>
+  </div>
+
+</body>
+</html>
