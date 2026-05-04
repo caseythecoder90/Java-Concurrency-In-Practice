@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 6: Task Execution — Flashcards</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-size: 1.6rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+
+    details summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #5c6bc0;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      top: -1px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    details summary:hover {
+      background: #f8f9ff;
+    }
+
+    .answer {
+      padding: 0 1.4rem 1.3rem 2.65rem;
+      line-height: 1.7;
+      color: #333;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    .answer strong {
+      color: #5c6bc0;
+    }
+
+    .answer code {
+      background: #f0f0f5;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .card-number {
+      color: #999;
+      font-size: 0.8rem;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    blockquote {
+      border-left: 3px solid #5c6bc0;
+      margin: 0.75rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8f9ff;
+      font-style: italic;
+      font-size: 0.93em;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0;
+      font-size: 0.93em;
+    }
+
+    table th, table td {
+      text-align: left;
+      padding: 0.5rem 0.7rem;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+
+    table th {
+      background: #f8f9ff;
+      color: #5c6bc0;
+      font-weight: 600;
+    }
+
+    pre {
+      background: #f0f0f5;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85em;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Chapter 6: Task Execution</h1>
+  <p class="subtitle">Click a question to reveal the answer &mdash; 25 cards</p>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">1.</span> What makes a good "task" in the context of an executor framework?</summary>
+      <div class="answer">
+        A self-contained unit of work that is <strong>independent</strong> of other tasks &mdash; no shared mutable state with siblings, doesn't depend on their results, and can be scheduled on any worker thread.
+        <br><br>
+        Granularity matters: too small and dispatch overhead dominates; too large and you lose parallelism. <strong>Small to medium-sized</strong> is the sweet spot.
+        <br><br>
+        Independence is what lets the framework choose the execution policy &mdash; pool size, ordering, queueing &mdash; without breaking correctness.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">2.</span> Why is a sequential server ("accept then handleRequest in the same thread") almost never acceptable in production?</summary>
+      <div class="answer">
+        While <code>handleRequest</code> runs, <code>accept()</code> is not called &mdash; new connections sit in the OS backlog or are refused. Throughput is roughly <code>1 / mean(handleRequest)</code> requests per second. The CPU is idle most of the time waiting on I/O, and clients see arbitrary queue delays.
+        <br><br>
+        Fine for demos and single-user tools; unacceptable for any server with concurrent clients.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">3.</span> What three problems does the naïve thread-per-task approach run into?</summary>
+      <div class="answer">
+        <strong>1. Thread lifecycle overhead.</strong> Creating and destroying threads has measurable startup latency and per-thread memory cost (~512KB-1MB stack on 64-bit).
+        <br><br>
+        <strong>2. Resource consumption.</strong> Active threads consume kernel scheduling slots and stacks. More threads than cores adds context-switching overhead and GC pressure.
+        <br><br>
+        <strong>3. Stability.</strong> JVM/OS thread limits cause <code>OutOfMemoryError</code> ("unable to create native thread") when exceeded. The whole JVM &mdash; not just the request handler &mdash; goes unstable.
+        <br><br>
+        Throughput plateaus then degrades as thread count grows past available cores.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">4.</span> What does the <code>Executor</code> interface look like, and why is such a tiny interface so important?</summary>
+      <div class="answer">
+        <pre>public interface Executor {
+    void execute(Runnable command);
+}</pre>
+        One method, one parameter. Its power comes from <strong>decoupling task submission from task execution</strong>: callers say "run this," and a single configuration point decides where, when, in what thread, and with what queueing/rejection rules.
+        <br><br>
+        It also formalises the <strong>producer-consumer</strong> shape: submitters produce tasks, worker threads consume them, the executor mediates with an internal queue.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">5.</span> What is an "execution policy" and why does the chapter argue you should make it explicit?</summary>
+      <div class="answer">
+        The bundle of decisions a thread pool/executor makes:
+        <br><br>
+        &bull; In what thread will tasks run? <br>
+        &bull; In what order? (FIFO, LIFO, priority) <br>
+        &bull; How many tasks may run concurrently? <br>
+        &bull; How many may queue? <br>
+        &bull; What happens when overloaded? (reject, drop oldest, run-in-caller, ...) <br>
+        &bull; Pre/post hooks per task?
+        <br><br>
+        Putting all of these in <strong>one place</strong> &mdash; an <code>Executor</code> &mdash; means you can tune them without rewriting calling code.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">6.</span> What are the four standard <code>Executors</code> factory methods and when should you reach for each?</summary>
+      <div class="answer">
+        <table>
+          <tr><th>Factory</th><th>Behaviour</th><th>Use when</th></tr>
+          <tr><td><code>newFixedThreadPool(n)</code></td><td>Fixed <code>n</code> workers, unbounded queue</td><td>Predictable server workloads</td></tr>
+          <tr><td><code>newCachedThreadPool</code></td><td>Unbounded threads, idle die after 60s, <code>SynchronousQueue</code></td><td>Bursty short-lived tasks (careful: unbounded!)</td></tr>
+          <tr><td><code>newSingleThreadExecutor</code></td><td>One worker, FIFO queue</td><td>Serial processing where order matters</td></tr>
+          <tr><td><code>newScheduledThreadPool(n)</code></td><td>Pool for delayed/periodic tasks</td><td>Replacement for <code>Timer</code></td></tr>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">7.</span> Why is <code>newCachedThreadPool</code> dangerous as a default for a server?</summary>
+      <div class="answer">
+        It has <strong>no upper bound</strong> on threads. Under sustained burst load it keeps creating workers &mdash; you can hit OS thread limits and OOM, the same failure mode as raw thread-per-task.
+        <br><br>
+        It uses a <code>SynchronousQueue</code> internally, so a submitted task either grabs an idle thread immediately or causes a new thread to be created. There is no queue to absorb bursts.
+        <br><br>
+        Use it for short-lived prototypes; for production servers, pick a fixed pool or a hand-tuned <code>ThreadPoolExecutor</code> with a bounded queue.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">8.</span> Why does the <code>Executor</code> interface need <code>ExecutorService</code> on top of it?</summary>
+      <div class="answer">
+        <code>Executor</code> says nothing about lifecycle &mdash; but the JVM won't exit while non-daemon threads are alive, so a pool that doesn't shut down hangs your process.
+        <br><br>
+        <code>ExecutorService</code> adds:
+        <pre>void shutdown();              // graceful
+List&lt;Runnable&gt; shutdownNow(); // forceful
+boolean isShutdown();
+boolean isTerminated();
+boolean awaitTermination(long, TimeUnit);
+&lt;T&gt; Future&lt;T&gt; submit(Callable&lt;T&gt;);</pre>
+        Three states: <strong>running &rarr; shutting down &rarr; terminated</strong>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">9.</span> What is the difference between <code>shutdown()</code> and <code>shutdownNow()</code>?</summary>
+      <div class="answer">
+        <strong><code>shutdown()</code></strong> &mdash; "stop accepting work, but finish what's been submitted." New submissions throw <code>RejectedExecutionException</code>; queued and running tasks complete normally.
+        <br><br>
+        <strong><code>shutdownNow()</code></strong> &mdash; "I need to stop fast." Drains the queue (returning unstarted tasks) and <strong>interrupts running threads</strong>. Whether the running tasks actually stop is up to them &mdash; interruption is cooperative (they must respond to it).
+        <br><br>
+        Common pattern: <code>shutdown()</code>, wait via <code>awaitTermination</code>, fall back to <code>shutdownNow()</code> if the wait expires.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">10.</span> What's the canonical "graceful then forceful" shutdown idiom?</summary>
+      <div class="answer">
+        <pre>exec.shutdown();
+try {
+    if (!exec.awaitTermination(30, TimeUnit.SECONDS)) {
+        exec.shutdownNow();
+        if (!exec.awaitTermination(30, TimeUnit.SECONDS))
+            log.warn("executor did not terminate");
+    }
+} catch (InterruptedException e) {
+    exec.shutdownNow();
+    Thread.currentThread().interrupt();
+}</pre>
+        Give running tasks a fair chance to complete; force after the deadline; if you yourself are interrupted while waiting, escalate to <code>shutdownNow</code> and restore the flag.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">11.</span> Why does the book argue you should never use <code>java.util.Timer</code> in new code?</summary>
+      <div class="answer">
+        Two failure modes:
+        <br><br>
+        <strong>1. Single thread.</strong> A long task delays every other timer task, and periodic tasks may overlap their period.
+        <br><br>
+        <strong>2. Unchecked exceptions kill the timer.</strong> If a task throws, the entire <code>Timer</code> thread dies. Pending tasks never run, <strong>and there's no notification</strong>. The timer looks alive but isn't &mdash; a silent failure.
+        <br><br>
+        Use <code>ScheduledThreadPoolExecutor</code> instead: multiple threads (one bad task doesn't starve others) and exceptions surface via <code>Future</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">12.</span> How does <code>OutOfTime</code> (Listing 6.9) demonstrate the <code>Timer</code> problem?</summary>
+      <div class="answer">
+        It schedules two tasks &mdash; one at +1s that throws <code>RuntimeException</code>, one at +1s that just prints. Run it and you see:
+        <br><br>
+        &bull; The throwing task fires.<br>
+        &bull; The thread dies.<br>
+        &bull; The second task never runs.<br>
+        &bull; <code>cancel()</code> on the timer throws <code>IllegalStateException</code> ("timer already cancelled") &mdash; and the JVM's main thread reports the exception only on shutdown.
+        <br><br>
+        A real outage scenario for anyone running scheduled jobs on a <code>Timer</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">13.</span> What is <code>Callable</code> and why is it more useful than <code>Runnable</code> for real work?</summary>
+      <div class="answer">
+        <pre>public interface Callable&lt;V&gt; {
+    V call() throws Exception;
+}</pre>
+        Two things <code>Runnable</code> can't do:
+        <br><br>
+        <strong>1. Returns a value.</strong> Real work usually has a result; <code>Runnable</code> forces you to plumb it through shared state.
+        <br><br>
+        <strong>2. Throws checked exceptions.</strong> <code>Runnable.run</code> can only let unchecked exceptions escape, which often forces awkward wrapping.
+        <br><br>
+        Submit a <code>Callable</code> to an <code>ExecutorService</code> and you get a <code>Future&lt;V&gt;</code> back &mdash; result and error in one object.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">14.</span> What does <code>Future&lt;V&gt;.get()</code> do and what exceptions can it throw?</summary>
+      <div class="answer">
+        Blocks until the task completes, then returns its result. The exceptions surface what happened to the task:
+        <br><br>
+        <strong><code>InterruptedException</code></strong> &mdash; the waiter was interrupted.<br>
+        <strong><code>ExecutionException</code></strong> &mdash; the task threw; <code>e.getCause()</code> is the original throwable.<br>
+        <strong><code>CancellationException</code></strong> &mdash; the task was cancelled before completing.<br>
+        <strong><code>TimeoutException</code></strong> &mdash; only on the timed overload, when the wait expires.
+        <br><br>
+        Always inspect <code>e.getCause()</code> to recover the real error &mdash; <code>ExecutionException</code> itself is the wrapper, not the bug.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">15.</span> What is <code>launderThrowable</code> and why is it useful?</summary>
+      <div class="answer">
+        A helper that unwraps the <code>Throwable</code> inside an <code>ExecutionException</code> and rethrows it cleanly:
+        <br><br>
+        &bull; If it's a <code>RuntimeException</code>, throw it as-is.<br>
+        &bull; If it's an <code>Error</code>, throw it as-is.<br>
+        &bull; Otherwise it's a checked exception that shouldn't be there &mdash; throw <code>IllegalStateException</code> wrapping it ("not a checked exception").
+        <br><br>
+        <strong>Always handle known checked exceptions before calling <code>launderThrowable</code></strong>; this method is the catch-all for unexpected ones. Same helper appears in chapter 5's <code>Memoizer</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">16.</span> Why does the sequential page renderer have terrible UX?</summary>
+      <div class="answer">
+        Page-load latency = sum of all image download times, plus text rendering.
+        <br><br>
+        The CPU sits idle most of the time waiting on network. Nothing renders until everything is downloaded. The user stares at a blank page until the slowest image arrives.
+        <br><br>
+        It's a textbook case of <strong>I/O-bound work waiting in series</strong> when it could be in parallel &mdash; trivially exploitable parallelism left on the floor.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">17.</span> What does the <code>Future</code>-based renderer (Listing 6.12) buy you, and what's still wrong with it?</summary>
+      <div class="answer">
+        <strong>Buys:</strong> the main thread renders text immediately while a background task downloads images. Text appears fast; user sees something.
+        <br><br>
+        <strong>Still wrong:</strong> all image downloads are inside <em>one</em> submitted task and run serially. After the text appears, the user waits for the slowest image before <em>any</em> image renders. They arrive as a bundle, not as they finish.
+        <br><br>
+        The next refactor is per-image submission via <code>CompletionService</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">18.</span> What is <code>CompletionService</code> and what problem does it solve?</summary>
+      <div class="answer">
+        It wraps an <code>Executor</code> and adds an internal <code>BlockingQueue</code> of completed <code>Future</code>s.
+        <br><br>
+        <pre>cs.submit(task);              // submit normally
+Future&lt;V&gt; f = cs.take();      // block for next FINISHED</pre>
+        Tasks come back in <strong>order of completion</strong>, not submission. The natural pattern for "do N independent things and process each result as soon as it's ready" &mdash; like the page renderer that paints each image the moment its download finishes.
+        <br><br>
+        Without it, you'd be polling <code>future.isDone()</code> in a loop &mdash; busy-wait or arbitrary-delay city.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">19.</span> What's the basic <code>CompletionService</code> usage pattern?</summary>
+      <div class="answer">
+        <pre>CompletionService&lt;V&gt; cs = new ExecutorCompletionService&lt;&gt;(exec);
+for (Task t : tasks) cs.submit(t);
+for (int i = 0; i &lt; tasks.size(); i++) {
+    try {
+        V result = cs.take().get();
+        process(result);
+    } catch (ExecutionException e) {
+        throw launderThrowable(e.getCause());
+    }
+}</pre>
+        Submit all, take exactly N times. Don't track <code>Future</code>s yourself unless you need to cancel a specific one.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">20.</span> Why is calling <code>future.cancel(true)</code> after a <code>TimeoutException</code> not optional?</summary>
+      <div class="answer">
+        A <code>TimeoutException</code> from <code>Future.get(timeout, ...)</code> means <strong>"the waiter gave up,"</strong> not "the task stopped." The task keeps running, holds whatever resources it had, and produces a result no one will read.
+        <br><br>
+        For long-running or expensive tasks that's a leak. The idiom:
+        <pre>try {
+    return f.get(timeout, MILLISECONDS);
+} catch (TimeoutException e) {
+    return defaultValue;
+} finally {
+    f.cancel(true);
+}</pre>
+        Cancellation is still cooperative &mdash; the task must respond to interruption &mdash; but at least you've requested it.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">21.</span> What does <code>invokeAll(tasks, timeout, unit)</code> guarantee, and how do you read its results?</summary>
+      <div class="answer">
+        Submits all tasks, blocks up to the timeout, then returns a list of <code>Future</code>s in <strong>submission order</strong> (not completion order). Any task that didn't finish in time is cancelled; its <code>Future</code> has <code>isCancelled() == true</code>.
+        <br><br>
+        Read each result like:
+        <pre>for (Future&lt;V&gt; f : futures) {
+    if (f.isCancelled()) handleTimeout();
+    else try { handleResult(f.get()); }
+         catch (ExecutionException e) { handleError(e.getCause()); }
+}</pre>
+        Canonical use: travel-portal &mdash; ask N airlines, give them all 1 second, return what came back.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">22.</span> When should you choose <code>CompletionService</code> versus <code>invokeAll</code> with a timeout?</summary>
+      <div class="answer">
+        <strong><code>CompletionService</code></strong> &mdash; you want to process each result <em>as it arrives</em>, possibly do partial work before all are done, and you don't necessarily care about a hard deadline. Order is <strong>completion order</strong>.
+        <br><br>
+        <strong><code>invokeAll(timeout)</code></strong> &mdash; you want a single batch with a hard deadline. After the deadline you stop waiting and treat unfinished tasks as failures. Order is <strong>submission order</strong>, with cancelled futures interspersed.
+        <br><br>
+        The page renderer fits the first; the travel portal fits the second.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">23.</span> What's the practical difference between <code>execute(Runnable)</code> and <code>submit(Callable)</code> for error handling?</summary>
+      <div class="answer">
+        <strong><code>execute(Runnable)</code></strong> &mdash; uncaught exceptions go to the thread's <code>UncaughtExceptionHandler</code> (and to <code>ThreadPoolExecutor.afterExecute</code>). Easy to lose track of in a server log.
+        <br><br>
+        <strong><code>submit(...)</code></strong> &mdash; returns a <code>Future</code>. Any thrown exception is captured and re-thrown wrapped in <code>ExecutionException</code> when you call <code>get()</code>. Errors are <strong>visible by default</strong> to whoever holds the future.
+        <br><br>
+        Prefer <code>submit</code> when you have a caller that wants the result anyway; otherwise wire up <code>afterExecute</code> or a <code>UncaughtExceptionHandler</code>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">24.</span> Why is <code>newFixedThreadPool</code>'s default queue still a footgun?</summary>
+      <div class="answer">
+        Internally it uses an <strong>unbounded</strong> <code>LinkedBlockingQueue</code>. The thread count is bounded, but the work backlog isn't &mdash; if producers outpace workers, the queue grows until you OOM.
+        <br><br>
+        The "cap on threads" is the easy part; bounding the queue is the part that gives you actual <strong>backpressure</strong>. For real overload protection, build your own <code>ThreadPoolExecutor</code> with a bounded queue and a sensible <code>RejectedExecutionHandler</code> (covered in chapter 8).
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><span class="card-number">25.</span> Trace the web-server evolution &mdash; what does each version add and what does it still miss?</summary>
+      <div class="answer">
+        <table>
+          <tr><th>Version</th><th>Adds</th><th>Misses</th></tr>
+          <tr><td><code>SingleThreadWebServer</code></td><td>Correctness</td><td>Concurrency</td></tr>
+          <tr><td><code>ThreadPerTaskWebServer</code></td><td>Concurrency</td><td>Resource bound, stability</td></tr>
+          <tr><td><code>TaskExecutionWebServer</code></td><td><code>Executor</code> = bounded threads + queue</td><td>Lifecycle (no clean shutdown)</td></tr>
+          <tr><td><code>LifecycleWebServer</code></td><td><code>shutdown()</code> path, observable termination</td><td>Tuning &amp; backpressure (ch. 8)</td></tr>
+        </table>
+        Same task code throughout &mdash; the only thing that changes is the execution policy. That's the chapter's whole thesis.
+      </div>
+    </details>
+  </div>
+
+</body>
+</html>
