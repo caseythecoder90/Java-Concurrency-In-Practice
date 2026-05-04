@@ -21,8 +21,8 @@ This repository contains detailed notes, flashcards, and runnable code examples 
 | 2 | Thread Safety | Done |
 | 3 | Sharing Objects | Done |
 | 4 | Composing Objects | Done |
-| 5 | Building Blocks | In Progress |
-| 6 | Task Execution | |
+| 5 | Building Blocks | Done |
+| 6 | Task Execution | In Progress |
 | 7 | Cancellation and Shutdown | |
 | 8 | Applying Thread Pools | |
 | 9 | GUI Applications | |
