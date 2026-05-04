@@ -9,8 +9,7 @@ This repository contains detailed notes, flashcards, and runnable code examples 
 | Resource | Location | Description |
 |----------|----------|-------------|
 | **Notes** | `notes/` | Detailed chapter summaries covering key concepts, gotchas, and page references back to the book |
-| **Flashcards (Markdown)** | `flashcards/*.md` | Q&A flashcards for quick review |
-| **Flashcards (HTML)** | `flashcards/*.html` | Interactive click-to-reveal flashcards — open in a browser for the best study experience |
+| **Flashcards** | `flashcards/*.html` | Interactive click-to-reveal flashcards — open in a browser for the best study experience |
 | **Code Examples** | `src/main/java/` | Runnable Java examples demonstrating each chapter's concepts (e.g., `UnsafeSequence` vs `SafeSequence`) |
 | **Tests** | `src/test/java/` | JUnit 5 tests that exercise the code examples and demonstrate thread-safety issues |
 
@@ -20,9 +19,9 @@ This repository contains detailed notes, flashcards, and runnable code examples 
 |---|---------|--------|
 | 1 | Introduction | Done |
 | 2 | Thread Safety | Done |
-| 3 | Sharing Objects | In Progress |
-| 4 | Composing Objects | |
-| 5 | Building Blocks | |
+| 3 | Sharing Objects | Done |
+| 4 | Composing Objects | Done |
+| 5 | Building Blocks | In Progress |
 | 6 | Task Execution | |
 | 7 | Cancellation and Shutdown | |
 | 8 | Applying Thread Pools | |
@@ -47,12 +46,12 @@ mvn clean test
 ```
 
 ### Using the Flashcards
-Open any `flashcards/*.html` file in your browser for an interactive study session — click a question to reveal the answer. The markdown versions (`flashcards/*.md`) are also available for quick reference directly on GitHub.
+Open any `flashcards/*.html` file in your browser for an interactive study session — click a question to reveal the answer.
 
 ## Project Structure
 ```
 ├── notes/                  # Chapter-by-chapter study notes
-├── flashcards/             # Flashcards in markdown and interactive HTML
+├── flashcards/             # Interactive HTML flashcards
 ├── src/
 │   ├── main/java/          # Code examples organized by chapter
 │   └── test/java/          # JUnit tests for the examples

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 5: Building Blocks — Flashcards</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      padding: 2rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-size: 1.6rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 1.1rem 1.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      list-style: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+
+    details summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #5c6bc0;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      position: relative;
+      top: -1px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    details summary:hover {
+      background: #f8f9ff;
+    }
+
+    .answer {
+      padding: 0 1.4rem 1.3rem 2.65rem;
+      line-height: 1.7;
+      color: #333;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    .answer strong {
+      color: #5c6bc0;
+    }
+
+    .answer code {
+      background: #f0f0f5;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .card-number {
+      color: #999;
+      font-size: 0.8rem;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    blockquote {
+      border-left: 3px solid #5c6bc0;
+      margin: 0.75rem 0;
+      padding: 0.5rem 0.75rem;
+      background: #f8f9ff;
+      font-style: italic;
+      font-size: 0.93em;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0;
+      font-size: 0.93em;
+    }
+
+    table th, table td {
+      text-align: left;
+      padding: 0.5rem 0.7rem;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+
+    table th {
+      background: #f8f9ff;
+      color: #5c6bc0;
+      font-weight: 600;
+    }
+
+    pre {
+      background: #f0f0f5;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85em;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Chapter 5: Building Blocks</h1>
+  <p class="subtitle">Click a question to reveal the answer &mdash; 25 cards</p>
+
+  <div class="card">
+    <details>
+      <summary>Why is <code>getLast(vector)</code> unsafe even though <code>Vector</code> is thread-safe?</summary>
+      <div class="answer">
+        <code>Vector</code> guarantees each method is atomic, but <code>getLast</code> is a <strong>compound action</strong>: <code>size()</code> then <code>get(lastIndex)</code>. Between the two calls another thread can shrink the vector, so <code>get</code> throws <code>ArrayIndexOutOfBoundsException</code>.
+        <br><br>
+        Fix: client-side lock on the collection itself.
+        <pre>synchronized (list) {
+    int lastIndex = list.size() - 1;
+    return list.get(lastIndex);
+}</pre>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What makes synchronized-collection iterators "fail-fast," and why is CME only an early-warning indicator?</summary>
+      <div class="answer">
+        Iterators track a <strong>modification count</strong> on the collection. If <code>hasNext</code> or <code>next</code> sees it change since iteration began, they throw <code>ConcurrentModificationException</code>.
+        <br><br>
+        The check is performed <strong>without synchronization</strong> (a deliberate perf tradeoff), so it can miss modifications due to stale reads. CME catches problems on a good-faith-effort basis only — don't rely on it as a safety net.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is a "hidden iterator" and where do they lurk?</summary>
+      <div class="answer">
+        Any code path that iterates a collection without an explicit <code>for</code> loop. Common culprits:
+        <br><br>
+        &bull; <code>toString()</code> &mdash; triggered by <code>"msg: " + set</code> via <code>StringBuilder.append(Object)</code><br>
+        &bull; <code>hashCode()</code> / <code>equals()</code> when the collection is an element or key of another<br>
+        &bull; <code>containsAll</code>, <code>removeAll</code>, <code>retainAll</code><br>
+        &bull; Collection copy constructors that take another collection
+        <br><br>
+        A debug <code>println</code> without the collection's lock can throw CME. Encapsulate the collection (e.g. wrap with <code>synchronizedSet</code>) so you can't forget.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why is <code>ConcurrentHashMap</code> usually a drop-in replacement for <code>Hashtable</code>/<code>synchronizedMap</code>?</summary>
+      <div class="answer">
+        It uses <strong>lock striping</strong> &mdash; many readers can run concurrently with each other and with a bounded number of writers, so throughput scales with cores instead of being pinned by one lock.
+        <br><br>
+        Its iterators are <strong>weakly consistent</strong> (no CME), and it offers better scalability with little downside &mdash; unless you specifically need to lock the map for exclusive access.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What four compound operations does <code>ConcurrentMap</code> add, and why do they exist?</summary>
+      <div class="answer">
+        <pre>V putIfAbsent(K, V)
+boolean remove(K, V)                        // remove-if-equal
+boolean replace(K, V old, V new)            // replace-if-equal
+V replace(K, V new)                         // replace-if-present</pre>
+        They exist because <code>ConcurrentHashMap</code> <strong>can't</strong> be locked from outside to build your own atomic operations &mdash; so it bakes the common compound actions into the interface itself.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>When is <code>CopyOnWriteArrayList</code> the right choice, and when is it a disaster?</summary>
+      <div class="answer">
+        <strong>Right</strong> when iteration vastly outnumbers mutation (the canonical case is event-listener lists). No locking or CME during iteration &mdash; readers see the snapshot as of when they started.
+        <br><br>
+        <strong>Disaster</strong> when writes are frequent: every mutation allocates and copies the entire backing array, so an N-element list is O(N) to mutate.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What problems does the producer-consumer pattern with a <code>BlockingQueue</code> solve?</summary>
+      <div class="answer">
+        <strong>Decoupling</strong> &mdash; producers and consumers don't know each other's count or identity.
+        <br><br>
+        <strong>Flow control</strong> &mdash; a full bounded queue blocks producers, naturally throttling the system.
+        <br><br>
+        <strong>Resource management</strong> &mdash; bounded queues prevent OOM when consumers fall behind.
+        <br><br>
+        <strong>Performance</strong> &mdash; CPU-bound consumers and I/O-bound producers run concurrently for better overall throughput.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What distinguishes the four <code>BlockingQueue</code> implementations?</summary>
+      <div class="answer">
+        <table>
+          <tr><th>Implementation</th><th>Character</th></tr>
+          <tr><td><code>LinkedBlockingQueue</code></td><td>FIFO, linked-list backed</td></tr>
+          <tr><td><code>ArrayBlockingQueue</code></td><td>FIFO, array backed</td></tr>
+          <tr><td><code>PriorityBlockingQueue</code></td><td>priority order (Comparable or Comparator)</td></tr>
+          <tr><td><code>SynchronousQueue</code></td><td>zero storage — direct handoff</td></tr>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is <code>SynchronousQueue</code> and when should you use it?</summary>
+      <div class="answer">
+        A "queue" with <strong>no storage</strong> &mdash; it maintains lists of waiting producers/consumers and hands work off directly. <code>put</code> blocks until a consumer is ready; <code>take</code> blocks until a producer is ready.
+        <br><br>
+        Benefits: <strong>lower latency</strong> (no staging step) and <strong>natural backpressure</strong> (the producer knows the instant a consumer accepted the work).
+        <br><br>
+        Only suitable when consumers are plentiful enough to nearly always be ready for handoff.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is serial thread confinement and how does a <code>BlockingQueue</code> enable it?</summary>
+      <div class="answer">
+        A pattern for sharing <strong>mutable</strong> objects: ownership transfers from one thread to another via a safe-publication handoff, and the original owner <strong>never touches the object again</strong>. The receiver then has exclusive access and can mutate freely.
+        <br><br>
+        A <code>BlockingQueue</code> provides the safe publication automatically, so producers can publish mutable work items, consumers can take them, and nothing needs further synchronization &mdash; provided the producer honors the "don't touch it after handoff" rule.
+        <br><br>
+        Object pools work the same way.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is work stealing, and why does it scale better than a shared producer-consumer queue?</summary>
+      <div class="answer">
+        Each worker has <strong>its own <code>Deque</code></strong>. It works on its own deque from the head (no contention). When empty, it steals work from the <strong>tail</strong> of another worker's deque &mdash; the far end, so the owner (head) and the thief (tail) rarely contend.
+        <br><br>
+        Perfect when consumers are also producers (processing one unit yields more work): web crawlers, graph traversal, GC heap marking.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does it mean that interruption is "cooperative," and what are your two options when you catch <code>InterruptedException</code>?</summary>
+      <div class="answer">
+        <code>Thread.interrupt()</code> just <strong>sets a boolean flag</strong>. Nothing forces the target thread to stop &mdash; blocking library methods check the flag and throw; pure-CPU loops must poll. It's a polite request, typically used for cancellation.
+        <br><br>
+        When you catch <code>InterruptedException</code> in your own code, two acceptable moves:
+        <br><br>
+        <strong>1. Propagate</strong> the exception to a caller that knows what to do (or just don't catch it).<br>
+        <strong>2. Restore the flag</strong> if you can't throw:
+        <pre>catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+}</pre>
+        <strong>Never</strong> swallow it &mdash; that destroys evidence of the interrupt and breaks cancellation for code up-stack.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is a synchronizer, and what are the four main types covered in chapter 5?</summary>
+      <div class="answer">
+        A <strong>synchronizer</strong> is any object that coordinates thread control flow based on its state &mdash; it encapsulates state, provides methods to mutate it, and provides methods to wait for the state to become something useful.
+        <br><br>
+        <strong>Latches</strong> (<code>CountDownLatch</code>) &mdash; one-shot gate that opens once.<br>
+        <strong>Futures</strong> (<code>FutureTask</code>) &mdash; latch for a result-bearing computation.<br>
+        <strong>Semaphores</strong> (<code>Semaphore</code>) &mdash; control how many threads may pass.<br>
+        <strong>Barriers</strong> (<code>CyclicBarrier</code>, <code>Exchanger</code>) &mdash; rendezvous points for N threads.
+        <br><br>
+        <code>BlockingQueue</code>s also count as synchronizers.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What's the difference between a latch and a barrier?</summary>
+      <div class="answer">
+        <blockquote>"Latches are for waiting for events; barriers are for waiting for other threads."</blockquote>
+        <strong>Latch</strong> &mdash; one-shot gate. Once the terminal state is reached, it stays open forever. Typical use: delay progress until N events have occurred.
+        <br><br>
+        <strong>Barrier</strong> &mdash; reusable rendezvous. Every participant must arrive before any is released. Typical use: step-by-step parallel algorithms where all workers must finish step <em>k</em> before anyone starts step <em>k+1</em>.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why does <code>TestHarness</code> use both a starting gate and an ending gate?</summary>
+      <div class="answer">
+        <strong>Starting gate</strong> (count = 1): every worker <code>await()</code>s it. Without it, threads created earlier get a head start, and the mix of active threads changes over time &mdash; bad for measuring concurrent behavior. The master releases everyone at once via <code>countDown()</code>.
+        <br><br>
+        <strong>Ending gate</strong> (count = N): each worker calls <code>countDown()</code> on completion. The master <code>await()</code>s it to block until the <em>last</em> worker finishes, so the elapsed time captures the whole group.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What is <code>FutureTask</code>, and why does <code>Future.get()</code> constitute safe publication?</summary>
+      <div class="answer">
+        <code>FutureTask&lt;V&gt;</code> is a result-bearing computation built on <code>Callable&lt;V&gt;</code>. Three states: waiting, running, completed (by normal return, exception, or cancellation). It acts like a <strong>latch</strong> &mdash; <code>get()</code> returns immediately if completed, else blocks.
+        <br><br>
+        The spec guarantees <code>Future.get()</code> provides <strong>safe publication</strong> of the result from the computing thread to the retrieving thread &mdash; no extra synchronization needed to see a fully constructed result.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does <code>launderThrowable</code> do, and why does it exist?</summary>
+      <div class="answer">
+        <code>Future.get()</code> wraps <strong>everything</strong> a task throws — checked exceptions, unchecked exceptions, and <code>Error</code>s — in an <code>ExecutionException</code> whose <code>getCause()</code> is a <code>Throwable</code>. Awkward to handle.
+        <br><br>
+        <code>launderThrowable</code> unwraps it:
+        <pre>if (t instanceof RuntimeException) return (RuntimeException) t;
+else if (t instanceof Error) throw (Error) t;
+else throw new IllegalStateException("Not unchecked", t);</pre>
+        Callers first test for and rethrow any known checked exceptions from their <code>Callable</code>, then hand the rest to <code>launderThrowable</code> and throw its return value.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>What does a counting semaphore do, and what's one surprising property?</summary>
+      <div class="answer">
+        A <code>Semaphore(N)</code> manages <strong>N virtual permits</strong>. <code>acquire()</code> takes one (blocking if none available); <code>release()</code> returns one. Useful for resource pools, bounded collections, and rate limiters.
+        <br><br>
+        <strong>Surprise:</strong> permits aren't tied to threads. Thread A can <code>acquire</code> a permit and thread B can <code>release</code> it. The semaphore isn't even limited to its initial count &mdash; you can <code>release</code> more than were initially issued. Think of <code>acquire</code> as "consume" and <code>release</code> as "create."
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How does <code>BoundedHashSet</code> use a semaphore to bound a collection?</summary>
+      <div class="answer">
+        Construct a <code>Semaphore(bound)</code> alongside a plain (thread-safe) <code>Set</code>. On <code>add</code>: acquire a permit first, then add &mdash; if the element was a duplicate (add returned false), immediately release the permit. On <code>remove</code>: if removal succeeded, release a permit.
+        <br><br>
+        The underlying set knows nothing about the bound — the semaphore handles capacity entirely.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How does <code>CyclicBarrier</code> work, and what is the optional "barrier action"?</summary>
+      <div class="answer">
+        <code>CyclicBarrier(n)</code>: threads call <code>await()</code>, blocking until all <code>n</code> parties arrive. Then all are released, the barrier resets, and the cycle can repeat. If <code>await</code> times out or is interrupted, the barrier breaks and all pending <code>await</code>s throw <code>BrokenBarrierException</code>.
+        <br><br>
+        The <strong>barrier action</strong> is an optional <code>Runnable</code> passed to the constructor, executed on one of the subtask threads <em>right before</em> parties are released. Perfect for "commit the results of this step" between iterations.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why does <code>CellularAutomata</code> use <code>Ncpu</code> worker threads and a <code>CyclicBarrier</code>?</summary>
+      <div class="answer">
+        For CPU-bound problems with <strong>no I/O and no shared data</strong>, <code>Ncpu</code> (or <code>Ncpu + 1</code>) threads yield optimal throughput &mdash; more threads just compete for CPU and degrade performance.
+        <br><br>
+        The barrier enforces the step boundaries: every worker must finish step <em>k</em> for its sub-board before anyone starts step <em>k+1</em>. The barrier action commits the new values between steps, so all threads observe a consistent board.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Memoizer1 (HashMap + <code>synchronized compute</code>): what's wrong with it?</summary>
+      <div class="answer">
+        It's correct, but it <strong>serializes every call</strong> to <code>compute</code>. A queue of threads asking for <em>different</em> values all wait behind one slow computation.
+        <br><br>
+        In the worst case, caching makes things <em>slower</em> than no cache &mdash; a scalability bottleneck, not a scalability win.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Memoizer2 (ConcurrentHashMap, cache <em>values</em>): what's the window of vulnerability?</summary>
+      <div class="answer">
+        Two threads asking for the <strong>same</strong> key at the same time both see no entry, both start computing, and both do the expensive work.
+        <br><br>
+        For memoization this is merely inefficient. For a cache meant to guarantee once-and-only-once initialization (object caches), it's a <strong>safety bug</strong> — you get two distinct instances.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Why does Memoizer3 cache <code>Future&lt;V&gt;</code> instead of <code>V</code>, and what tiny window of vulnerability remains?</summary>
+      <div class="answer">
+        Caching the <em>in-progress <code>Future</code></em> lets late arrivers <strong>wait on the existing computation</strong> via <code>Future.get()</code> instead of starting another. Massive reduction in duplicate work.
+        <br><br>
+        Remaining defect: the <code>get</code> then <code>put</code> on the cache is still a non-atomic check-then-act. Two threads can both see <code>null</code>, both create a <code>FutureTask</code>, and both <code>put</code> &mdash; so both end up running the same computation.
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>How does the final Memoizer close the check-then-act window, and what is cache pollution?</summary>
+      <div class="answer">
+        Use <code>ConcurrentMap.putIfAbsent</code> &mdash; an <strong>atomic</strong> insertion. Exactly one <code>FutureTask</code> wins the race; losers get the winner's <code>Future</code> and call <code>get()</code> on it.
+        <br><br>
+        <strong>Cache pollution:</strong> if a cached <code>Future</code> completes exceptionally or is cancelled, every future lookup inherits that failure. Memoizer wraps the logic in <code>while (true)</code> and on <code>CancellationException</code> removes the poisoned <code>Future</code> from the cache and retries. You might similarly evict on <code>RuntimeException</code> if retrying could succeed.
+      </div>
+    </details>
+  </div>
+
+</body>
+</html>
